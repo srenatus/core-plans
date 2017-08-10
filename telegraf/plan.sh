@@ -1,36 +1,47 @@
 pkg_name=telegraf
 pkg_origin=core
-pkg_version="1.3.1"
-pkg_maintainer="The Habitat Maintainers <humans@habitat.sh>"
-pkg_license=('The MIT License (MIT)')
+pkg_version="1.3.5"
+pkg_license=('MIT')
 pkg_description="telegraf - client for InfluxDB"
 pkg_upstream_url="https://github.com/influxdata/telegraf/"
+pkg_maintainer="The Habitat Maintainers <humans@habitat.sh>"
 pkg_scaffolding="core/scaffolding-go"
-pkg_svc_run="bin/telegraf"
+pkg_svc_run="telegraf --config $pkg_svc_config_path/telegraf.conf"
 pkg_bin_dirs=(bin)
 
-do_begin() {
-    set -x
-    export GOBIN="${GOPATH}/bin"
+do_prepare() {
+  export GOPATH="${HAB_CACHE_SRC_PATH}/${pkg_dirname}"
 }
 
 do_download() {
-    git clone --branch "${pkg_version}" https://github.com/influxdata/telegraf || true
-    cd telegraf && \
-        git pull origin $pkg_version
+  mkdir -p "${GOPATH}"
+  pushd "${GOPATH}" > /dev/null
+  build_line "Downloading telegraf go package (github repository)"
+  go get github.com/influxdata/telegraf
+  popd > /dev/null
+}
+
+do_verify() {
+  return 0
+}
+
+do_unpack() {
+  pushd "${GOPATH}/src/github.com/influxdata/telegraf" > /dev/null
+  build_line "Checking out telegraf version ${pkg_version} git tag"
+  git checkout ${pkg_version}
+  popd > /dev/null
 }
 
 do_build() {
-    go get github.com/influxdata/telegraf
-    cd "$GOPATH"/src/github.com/influxdata/telegraf || exit
-    make
+  pushd "${GOPATH}/src/github.com/influxdata/telegraf" > /dev/null
+  make
+  popd > /dev/null
 }
 
 do_install() {
-    mkdir -p "${pkg_prefix}"/bin
-    cp /bin/telegraf "${pkg_prefix}"/bin
+  install -vD "${GOPATH}/bin/telegraf" "${pkg_prefix}/bin"
 }
 
 do_clean() {
-    return 0
+  return 0
 }
